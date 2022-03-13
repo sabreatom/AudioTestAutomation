@@ -40,13 +40,16 @@ class DutOutputAnalyzer:
             return False
 
     def findTone(self, spectrum, fundamentalHarmonic, threshold):
-        return np.argmax(spectrum[fundamentalHarmonic - threshold:fundamentalHarmonic + threshold])
+        #f0 = fs*n0/N
+        fft_harmonic = fundamentalHarmonic * len(spectrum) // self.sample_rate
+        fft_threshold = threshold * len(spectrum) // self.sample_rate
+        return np.argmax(spectrum[fft_harmonic - fft_threshold:fft_harmonic + fft_threshold])
 
     def processDutData(self, data):
         if (self.storeBuffer(data)):
             y_f = fft(self.buffer)
             y_f = np.abs(y_f)
-            tone = self.findTone(y_f[:self.buffer_size // 2], self.frequency, 10)
+            tone = self.findTone(y_f, self.frequency, 10)
             thd = self.calculateTHD(tone, y_f[:self.buffer_size // 2])
             print("Tone value: {}, THD: {}".format(tone, thd))
 
