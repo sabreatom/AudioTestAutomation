@@ -3,14 +3,17 @@ from scipy.fftpack import fft
 import math
 
 class DutOutputAnalyzer:
-    def __init__(self, sample_rate, frequency, ref_amplitude):
+    def __init__(self, sample_rate, frequency, measurement_done_callback):
         self.sample_rate = sample_rate
         self.frequency = frequency
-        self.ref_amplitude = ref_amplitude
 
         self.buffer_size = sample_rate // 20 #at least one 20 Hz sine wave period fits in buffer
         self.buffer = np.zeros(self.buffer_size)
         self.buffer_sample_count = 0
+
+        self.measurement_done_callback = measurement_done_callback
+
+        self.last_thd = None
 
     def setRefFrequency(self, frequency):
         self.frequency = frequency
@@ -51,7 +54,17 @@ class DutOutputAnalyzer:
             y_f = np.abs(y_f)
             tone = self.findTone(y_f, self.frequency, 10)
             thd = self.calculateTHD(tone, y_f[:self.buffer_size // 2])
-            print("Tone value: {}, THD: {}".format(tone, thd))
+            amplitude = y_f[tone]
+            print("Tone value: {}, THD: {}, amplitude: {}".format(tone, thd, amplitude))
+
+            if (self.last_thd == None):
+                self.last_thd = thd
+            else:
+                if (self.last_thd > thd):
+                    self.last_thd = thd
+                else:
+                    self.last_thd = None
+                    self.measurement_done_callback(tone, amplitude, thd)
 
 
     def calculateTHD(self, fundamentalHarmonic, arr):

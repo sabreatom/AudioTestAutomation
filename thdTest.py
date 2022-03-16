@@ -1,10 +1,14 @@
 import time
-import WaveFormGenerator as wfg
+import src.WaveFormGenerator as wfg
 import math
 
 import numpy as np
 from scipy.fftpack import fft
 import matplotlib.pyplot as plt
+
+import os
+import sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 def normalizeArray(arr):
     max_val = max(arr)
