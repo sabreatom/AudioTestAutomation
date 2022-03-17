@@ -29,6 +29,7 @@ class DutOutputAnalyzer:
 
     def storeBuffer(self, data):
         audio_data = np.frombuffer(data, dtype=np.float32)
+        print("Sample count: {}, audio data len: {}".format(self.buffer_sample_count, len(audio_data)))
 
         if (self.buffer_sample_count == 0):
             self.buffer = audio_data
@@ -46,13 +47,14 @@ class DutOutputAnalyzer:
         #f0 = fs*n0/N
         fft_harmonic = fundamentalHarmonic * len(spectrum) // self.sample_rate
         fft_threshold = threshold * len(spectrum) // self.sample_rate
+        print("Harmonic: {}, threshold: {}".format(fft_harmonic, fft_threshold))
         return np.argmax(spectrum[fft_harmonic - fft_threshold:fft_harmonic + fft_threshold])
 
     def processDutData(self, data):
         if (self.storeBuffer(data)):
             y_f = fft(self.buffer)
             y_f = np.abs(y_f)
-            tone = self.findTone(y_f, self.frequency, 10)
+            tone = self.findTone(y_f, self.frequency, 20)
             thd = self.calculateTHD(tone, y_f[:self.buffer_size // 2])
             amplitude = y_f[tone]
             print("Tone value: {}, THD: {}, amplitude: {}".format(tone, thd, amplitude))
