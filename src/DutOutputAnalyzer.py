@@ -1,17 +1,19 @@
+from asyncio.windows_events import NULL
 import numpy as np
 from scipy.fftpack import fft
 import math
 
 class DutOutputAnalyzer:
-    def __init__(self, sample_rate, frequency, measurement_done_callback):
+    def __init__(self, sample_rate, frequency):
         self.sample_rate = sample_rate
         self.frequency = frequency
+        self.frequency_tolerance = 20
 
         self.buffer_size = sample_rate // 20 #at least one 20 Hz sine wave period fits in buffer
         self.buffer = np.zeros(self.buffer_size)
         self.buffer_sample_count = 0
 
-        self.measurement_done_callback = measurement_done_callback
+        self.measurement_done_callback = NULL
 
         self.last_thd = None
 
@@ -29,7 +31,7 @@ class DutOutputAnalyzer:
 
     def storeBuffer(self, data):
         audio_data = np.frombuffer(data, dtype=np.float32)
-        print("Sample count: {}, audio data len: {}".format(self.buffer_sample_count, len(audio_data)))
+        #print("Sample count: {}, audio data len: {}".format(self.buffer_sample_count, len(audio_data)))
 
         if (self.buffer_sample_count == 0):
             self.buffer = audio_data
@@ -43,31 +45,36 @@ class DutOutputAnalyzer:
             self.buffer_sample_count += len(audio_data)
             return False
 
-    def findTone(self, spectrum, fundamentalHarmonic, threshold):
-        #f0 = fs*n0/N
-        fft_harmonic = fundamentalHarmonic * len(spectrum) // self.sample_rate
-        fft_threshold = threshold * len(spectrum) // self.sample_rate
-        print("Harmonic: {}, threshold: {}".format(fft_harmonic, fft_threshold))
-        return np.argmax(spectrum[fft_harmonic - fft_threshold:fft_harmonic + fft_threshold])
+    def convertFrequencyToHarmonic(self, frequency, fft_window_length):
+        #n0 = f0 * N / fs
+        harmonic = frequency * fft_window_length // self.sample_rate
+        return harmonic
+
+    def convertHarmonicToFrequency(self, harmonic, fft_window_length):
+        #f0 = fs * n0 / N
+        frequency = harmonic * self.sample_rate // fft_window_length
+        return frequency
 
     def processDutData(self, data):
         if (self.storeBuffer(data)):
             y_f = fft(self.buffer)
             y_f = np.abs(y_f)
-            tone = self.findTone(y_f, self.frequency, 20)
-            thd = self.calculateTHD(tone, y_f[:self.buffer_size // 2])
-            amplitude = y_f[tone]
-            print("Tone value: {}, THD: {}, amplitude: {}".format(tone, thd, amplitude))
 
-            if (self.last_thd == None):
-                self.last_thd = thd
-            else:
-                if (self.last_thd > thd):
-                    self.last_thd = thd
-                else:
-                    self.last_thd = None
-                    self.measurement_done_callback(tone, amplitude, thd)
+            result = {}
 
+            max_harmonic = np.argmax(y_f[:self.buffer_size // 2])
+            result['max_frequency_amplitude'] = y_f[max_harmonic]
+            result['max_frequency'] = self.convertHarmonicToFrequency(max_harmonic, len(y_f))
+
+            ref_harmonic = self.convertFrequencyToHarmonic(self.frequency, len(y_f))
+            harmonic_tolerance = self.convertFrequencyToHarmonic(self.frequency_tolerance, len(y_f))
+            ref_harmonic = np.argmax(y_f[ref_harmonic - harmonic_tolerance:ref_harmonic + harmonic_tolerance])
+            result['thd'] = self.calculateTHD(ref_harmonic, y_f[:self.buffer_size // 2])
+            result['ref_frequency_amplitude'] = y_f[ref_harmonic]
+            result['ref_frequency'] = self.convertHarmonicToFrequency(ref_harmonic, len(y_f))
+            result['fft'] = y_f
+
+            self.measurement_done_callback(result)
 
     def calculateTHD(self, fundamentalHarmonic, arr):
         sum = 0
