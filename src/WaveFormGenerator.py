@@ -13,7 +13,8 @@ class WaveFormGenerator:
         self.setWaveFormType(waveFormType)
 
         self.frequency = frequency
-        self.createSweepWaveTable()
+        if self.waveFormType == WaveFormType.SineSweep:
+            self.createSweepWaveTable()
         self.sweep_index = 0
 
         self.amplitude = amplitude
@@ -29,7 +30,8 @@ class WaveFormGenerator:
 
     def setFrequency(self, frequency):
         self.frequency = frequency
-        self.createSweepWaveTable()
+        if self.waveFormType == WaveFormType.SineSweep:
+            self.createSweepWaveTable()
         self.sweep_index = 0
 
     def getFrequency(self):
