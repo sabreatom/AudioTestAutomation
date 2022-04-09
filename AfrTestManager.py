@@ -5,16 +5,18 @@ import src.WaveFormGenerator as wfg
 import src.AudioInterface as ai
 import src.DutOutputAnalyzer as doa
 
-
 class AfrTestManager:
-    def __init__(self, audio_interface, waveform_generator, output_analyzer, test_frequencies = NULL):
-        self.audio_interface = audio_interface
-        self.waveform_generator = waveform_generator 
-        self.output_analyzer = output_analyzer
+    AVERAGE_NUM = 5
+
+    def __init__(self, sample_rate, test_frequencies = NULL):
+        self.waveform_generator = wfg.WaveFormGenerator(wfg.WaveFormType.Sine, 50, sample_rate)
+        self.output_analyzer = doa.DutOutputAnalyzer(sample_rate, self.callbackMeasurementDone)
+        self.audio_interface = ai.AudioInterface(sample_rate, self.output_analyzer.processDutData, self.waveform_generator.generateSamplesCallback)
         self.test_frequencies = test_frequencies
         self.current_freq = 0
         self.isRunning = False
         self.test_result = []
+        self.iteration = 0
 
     def setTestFrequencies(self, test_frequencies):
         self.test_frequencies = test_frequencies
@@ -26,6 +28,8 @@ class AfrTestManager:
             return NULL
 
         self.current_freq = 0
+        self.waveform_generator.setFrequency(self.test_frequencies[self.current_freq])
+        self.current_freq += 1
         self.audio_interface.start()
         self.isRunning = True
         
@@ -33,21 +37,19 @@ class AfrTestManager:
             pass
 
     def callbackMeasurementDone(self, result):
-        if self.current_freq == 0:
-            self.waveform_generator.setFrequency(self.test_frequencies[self.current_freq])
-            self.output_analyzer.setRefFrequency(self.test_frequencies[self.current_freq])
-            self.current_freq += 1
+        if self.iteration < self.AVERAGE_NUM:
+            self.iteration += 1
         else:
+            self.iteration = 0
+
             if self.current_freq < len(self.test_frequencies):
                 self.waveform_generator.setFrequency(self.test_frequencies[self.current_freq])
-                self.output_analyzer.setRefFrequency(self.test_frequencies[self.current_freq])
                 self.current_freq += 1
             else:
                 self.current_freq = 0
                 self.isRunning = False
 
-            print('-------------------------------')
-            print('[INFO] Max frequency: {}, amplitude: {}'.format(result['max_frequency'], result['max_frequency_amplitude']))
-            print('[INFO] Reference frequency: {}, amplitude: {}'.format(result['ref_frequency'], result['ref_frequency_amplitude']))
-            print('[INFO] THD: {}'.format(result['thd']))
-            print('-------------------------------')
+        print('-------------------------------')
+        print('[INFO] Max frequency: {}, amplitude: {}'.format(result['max_frequency'], result['max_frequency_amplitude']))
+        print('[INFO] THD: {}'.format(result['thd']))
+        print('-------------------------------')
