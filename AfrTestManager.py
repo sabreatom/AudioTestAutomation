@@ -16,6 +16,7 @@ class AfrTestManager:
         self.current_freq = 0
         self.isRunning = False
         self.test_result = []
+        
         self.iteration = 0
 
     def setTestFrequencies(self, test_frequencies):

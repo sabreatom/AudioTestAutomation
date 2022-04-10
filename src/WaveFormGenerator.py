@@ -1,5 +1,6 @@
 import enum
 import math
+import threading
 
 class WaveFormType(enum.Enum):
     Sine = 0
@@ -21,6 +22,8 @@ class WaveFormGenerator:
         self.current_angle = 0.0
         self.sample_rate = sample_rate
 
+        self.freq_lock = threading.Lock()
+
     def generateSamplesCallback(self, frame_length):
         if self.waveFormType == WaveFormType.Sine:
             return self.generateSineWave(frame_length)
@@ -29,7 +32,9 @@ class WaveFormGenerator:
             return self.generateSineSweep(frame_length)
 
     def setFrequency(self, frequency):
+        self.freq_lock.acquire()
         self.frequency = frequency
+        self.freq_lock.release()
         if self.waveFormType == WaveFormType.SineSweep:
             self.createSweepWaveTable()
         self.sweep_index = 0
@@ -53,7 +58,9 @@ class WaveFormGenerator:
         return self.waveFormType
 
     def generateSineWave(self, frame_length):
+        self.freq_lock.acquire()
         angle_step = 2 * math.pi * self.frequency / self.sample_rate
+        self.freq_lock.release()
         data_float = []
         for i in range(frame_length):
             self.current_angle = self.current_angle + angle_step
