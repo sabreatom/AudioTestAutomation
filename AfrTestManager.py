@@ -15,12 +15,23 @@ class AfrTestManager:
         self.test_frequencies = test_frequencies
         self.current_freq = 0
         self.isRunning = False
-        self.test_result = []
+        self.test_result = {}
         
         self.iteration = 0
 
     def setTestFrequencies(self, test_frequencies):
         self.test_frequencies = test_frequencies
+
+    def processResults(self, data):
+        #TODO: also include THD in processing, to detect signal distortion
+        result = {}
+        for i in sorted(data):
+            if len(data[i]['amplitude']) > 1:
+                result[i] = np.median(data[i]['amplitude'])
+            else:
+                result[i] = data[i]['amplitude']
+
+        return result
 
     def runTestIteration(self):
         #test frequencies array not initialized:
@@ -28,6 +39,7 @@ class AfrTestManager:
             print('[ERROR] Test frequencies array not initialized')
             return NULL
 
+        self.test_result = {}
         self.current_freq = 0
         self.waveform_generator.setFrequency(self.test_frequencies[self.current_freq])
         self.current_freq += 1
@@ -36,6 +48,8 @@ class AfrTestManager:
         
         while self.isRunning == True:
             pass
+
+        return self.processResults(self.test_result)
 
     def callbackMeasurementDone(self, result):
         if self.iteration < self.AVERAGE_NUM:
@@ -50,7 +64,9 @@ class AfrTestManager:
                 self.current_freq = 0
                 self.isRunning = False
 
-        print('-------------------------------')
-        print('[INFO] Max frequency: {}, amplitude: {}'.format(result['max_frequency'], result['max_frequency_amplitude']))
-        print('[INFO] THD: {}'.format(result['thd']))
-        print('-------------------------------')
+        if result['max_frequency'] in self.test_result:
+            self.test_result[result['max_frequency']]['amplitude'].append(result['max_frequency_amplitude'])
+            self.test_result[result['max_frequency']]['thd'].append(result['thd'])
+        else:
+            self.test_result[result['max_frequency']]['amplitude'] = [result['max_frequency_amplitude']]
+            self.test_result[result['max_frequency']]['thd'] = [result['thd']]
