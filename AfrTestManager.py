@@ -29,7 +29,7 @@ class AfrTestManager:
             if len(data[i]['amplitude']) > 1:
                 result[i] = np.median(data[i]['amplitude'])
             else:
-                result[i] = data[i]['amplitude']
+                result[i] = data[i]['amplitude'][0]
 
         return result
 
@@ -68,5 +68,6 @@ class AfrTestManager:
             self.test_result[result['max_frequency']]['amplitude'].append(result['max_frequency_amplitude'])
             self.test_result[result['max_frequency']]['thd'].append(result['thd'])
         else:
+            self.test_result[result['max_frequency']] = {}
             self.test_result[result['max_frequency']]['amplitude'] = [result['max_frequency_amplitude']]
             self.test_result[result['max_frequency']]['thd'] = [result['thd']]
