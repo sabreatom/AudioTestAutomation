@@ -1,6 +1,6 @@
 from asyncio.windows_events import NULL
 import numpy as np
-import math
+import time
 import src.WaveFormGenerator as wfg
 import src.AudioInterface as ai
 import src.DutOutputAnalyzer as doa
@@ -48,7 +48,9 @@ class AfrTestManager:
         
         while self.isRunning == True:
             pass
-
+        
+        self.audio_interface.stop()
+        time.sleep(0.5) #wait for remaining frames to be captured
         return self.processResults(self.test_result)
 
     def callbackMeasurementDone(self, result):
