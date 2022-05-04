@@ -10,30 +10,35 @@ class WaveFormType(enum.Enum):
     SineSweep = 4
 
 class WaveFormGenerator:
-    def __init__(self, waveFormType, frequency, sample_rate, amplitude = 1.0):
-        self.setWaveFormType(waveFormType)
-
-        self.frequency = frequency
-        if self.waveFormType == WaveFormType.SineSweep:
-            self.createSweepWaveTable()
-        self.sweep_index = 0
+    def __init__(self, waveFormType, frequency, sample_rate, amplitude = 1.0, generateSamplesDoneCallback = None):
+        self.freq_lock = threading.Lock()
 
         self.amplitude = amplitude
         self.current_angle = 0.0
         self.sample_rate = sample_rate
 
-        self.freq_lock = threading.Lock()
+        self.setWaveFormType(waveFormType)
+
+        self.setFrequency(frequency)
+
+        self.generateSamplesDoneCallback = generateSamplesDoneCallback
 
     def generateSamplesCallback(self, frame_length):
         if self.waveFormType == WaveFormType.Sine:
-            return self.generateSineWave(frame_length)
+            data = self.generateSineWave(frame_length)
+        elif self.waveFormType == WaveFormType.SineSweep:
+            data = self.generateSineSweep(frame_length)
 
-        if self.waveFormType == WaveFormType.SineSweep:
-            return self.generateSineSweep(frame_length)
+        if self.generateSamplesDoneCallback is not None:
+            period_generated = (frame_length * self.angle_step) / (2 * math.pi)
+            self.generateSamplesDoneCallback(period_generated)
+
+        return data
 
     def setFrequency(self, frequency):
         self.freq_lock.acquire()
         self.frequency = frequency
+        self.angle_step = 2 * math.pi * self.frequency / self.sample_rate
         self.freq_lock.release()
         if self.waveFormType == WaveFormType.SineSweep:
             self.createSweepWaveTable()
@@ -59,11 +64,11 @@ class WaveFormGenerator:
 
     def generateSineWave(self, frame_length):
         self.freq_lock.acquire()
-        angle_step = 2 * math.pi * self.frequency / self.sample_rate
+        self.angle_step = 2 * math.pi * self.frequency / self.sample_rate
         self.freq_lock.release()
         data_float = []
         for i in range(frame_length):
-            self.current_angle = self.current_angle + angle_step
+            self.current_angle = self.current_angle + self.angle_step
             data_float.append(self.amplitude * math.sin(self.current_angle))
 
         return data_float

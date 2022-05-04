@@ -5,7 +5,8 @@ import struct
 class AudioInterface:
     def __stream_callback__(self, in_data, frame_count, time_info, status):
         #process input:
-        self.input_callback(in_data)
+        if self.input_callback is not None:
+            self.input_callback(in_data)
 
         #process output:
         data_float = self.output_callback(frame_count)
