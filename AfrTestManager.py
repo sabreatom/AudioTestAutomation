@@ -6,7 +6,7 @@ import src.AudioInterface as ai
 import src.DutOutputAnalyzer as doa
 
 class AfrTestManager:
-    FREQ_TEST_LENGTH = 10.0   #periods
+    FREQ_TEST_LENGTH = 50.0   #periods
 
     def __init__(self, sample_rate, test_frequencies = NULL):
         self.waveform_generator = wfg.WaveFormGenerator(wfg.WaveFormType.Sine, 50, sample_rate, 1.0, self.generateSamplesDoneCallback)

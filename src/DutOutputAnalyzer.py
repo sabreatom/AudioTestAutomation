@@ -21,11 +21,14 @@ class DutOutputAnalyzer:
 
     def convertHarmonicToFrequency(self, harmonic, fft_window_length):
         #f0 = fs * n0 / N
-        frequency = harmonic * self.sample_rate // fft_window_length
+        frequency = harmonic * self.sample_rate / fft_window_length
         return frequency
 
     def calculateSpectrum(self):
+        result = {}
         data = np.frombuffer(self.buffer, dtype=np.float32)
         y_f = fft(data)
         y_f = np.abs(y_f)
-        return y_f[0:(y_f.size // 2)]
+        result['fft'] = y_f[0:(y_f.size // 2)]
+        result['f_step'] = self.convertHarmonicToFrequency(1, y_f.size)
+        return result
