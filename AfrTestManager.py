@@ -10,8 +10,8 @@ class AfrTestManager:
 
     def __init__(self, sample_rate, test_frequencies = NULL):
         self.waveform_generator = wfg.WaveFormGenerator(wfg.WaveFormType.Sine, 50, sample_rate, 1.0, self.generateSamplesDoneCallback)
-        self.output_analyzer = doa.DutOutputAnalyzer(sample_rate, self.callbackMeasurementDone)
-        self.audio_interface = ai.AudioInterface(sample_rate, self.output_analyzer.processDutData, self.waveform_generator.generateSamplesCallback)
+        self.output_analyzer = doa.DutOutputAnalyzer(sample_rate)
+        self.audio_interface = ai.AudioInterface(sample_rate, self.output_analyzer.storeBuffer, self.waveform_generator.generateSamplesCallback)
         self.test_frequencies = test_frequencies
         self.current_freq = 0
         self.isRunning = False
@@ -21,17 +21,6 @@ class AfrTestManager:
 
     def setTestFrequencies(self, test_frequencies):
         self.test_frequencies = test_frequencies
-
-    def processResults(self, data):
-        #TODO: also include THD in processing, to detect signal distortion
-        result = {}
-        for i in sorted(data):
-            if len(data[i]['amplitude']) > 1:
-                result[i] = np.median(data[i]['amplitude'])
-            else:
-                result[i] = data[i]['amplitude'][0]
-
-        return result
 
     def runTestIteration(self):
         #test frequencies array not initialized:
@@ -51,16 +40,7 @@ class AfrTestManager:
         
         self.audio_interface.stop()
         time.sleep(0.5) #wait for remaining frames to be captured
-        return self.processResults(self.test_result)
-
-    def callbackMeasurementDone(self, result):
-        if result['max_frequency'] in self.test_result:
-            self.test_result[result['max_frequency']]['amplitude'].append(result['max_frequency_amplitude'])
-            self.test_result[result['max_frequency']]['thd'].append(result['thd'])
-        else:
-            self.test_result[result['max_frequency']] = {}
-            self.test_result[result['max_frequency']]['amplitude'] = [result['max_frequency_amplitude']]
-            self.test_result[result['max_frequency']]['thd'] = [result['thd']]
+        return self.output_analyzer.calculateSpectrum()
 
     def generateSamplesDoneCallback(self, period_generated):
         self.freq_period_count += period_generated
