@@ -1,7 +1,6 @@
 from asyncio.windows_events import NULL
 import numpy as np
 from scipy.fftpack import fft
-import math
 
 class DutOutputAnalyzer:
     def __init__(self, sample_rate):

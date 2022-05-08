@@ -6,9 +6,7 @@ import src.AudioInterface as ai
 import src.DutOutputAnalyzer as doa
 
 class AfrTestManager:
-    FREQ_TEST_LENGTH = 50.0   #periods
-
-    def __init__(self, sample_rate, test_frequencies = NULL):
+    def __init__(self, sample_rate, test_frequencies = None):
         self.waveform_generator = wfg.WaveFormGenerator(wfg.WaveFormType.Sine, 50, sample_rate, 1.0, self.generateSamplesDoneCallback)
         self.output_analyzer = doa.DutOutputAnalyzer(sample_rate)
         self.audio_interface = ai.AudioInterface(sample_rate, self.output_analyzer.storeBuffer, self.waveform_generator.generateSamplesCallback)
@@ -18,9 +16,13 @@ class AfrTestManager:
         self.test_result = {}
         
         self.freq_period_count = 0.0
+        self.freq_duration = 0.05 #seconds
+        if test_frequencies is not None:
+            self.freq_test_length = self.freq_duration // (1.0 / self.test_frequencies[self.current_freq])
 
     def setTestFrequencies(self, test_frequencies):
         self.test_frequencies = test_frequencies
+        self.freq_test_length = self.freq_duration // (1.0 / self.test_frequencies[self.current_freq])
 
     def runTestIteration(self):
         #test frequencies array not initialized:
@@ -44,7 +46,7 @@ class AfrTestManager:
 
     def generateSamplesDoneCallback(self, period_generated):
         self.freq_period_count += period_generated
-        if self.freq_period_count >= self.FREQ_TEST_LENGTH:
+        if self.freq_period_count >= self.freq_test_length:
             self.freq_period_count = 0.0
 
             if self.current_freq < len(self.test_frequencies):
@@ -53,3 +55,7 @@ class AfrTestManager:
             else:
                 self.current_freq = 0
                 self.isRunning = False
+
+    def setFreqTestDuration(self, duration):
+        self.freq_duration = duration
+        self.freq_test_length = self.freq_duration // (1.0 / self.test_frequencies[self.current_freq])
