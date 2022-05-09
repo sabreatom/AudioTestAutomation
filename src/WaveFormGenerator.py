@@ -1,6 +1,7 @@
 import enum
 import math
 import threading
+import numpy as np
 
 class WaveFormType(enum.Enum):
     Sine = 0
@@ -8,6 +9,7 @@ class WaveFormType(enum.Enum):
     Triangle = 2
     Saw = 3
     SineSweep = 4
+    WhiteNoise = 5
 
 class WaveFormGenerator:
     def __init__(self, waveFormType, frequency, sample_rate, amplitude = 1.0, generateSamplesDoneCallback = None):
@@ -28,6 +30,8 @@ class WaveFormGenerator:
             data = self.generateSineWave(frame_length)
         elif self.waveFormType == WaveFormType.SineSweep:
             data = self.generateSineSweep(frame_length)
+        elif self.waveFormType == WaveFormType.WhiteNoise:
+            data = self.generateWhiteNoise(frame_length)
 
         if self.generateSamplesDoneCallback is not None:
             period_generated = (frame_length * self.angle_step) / (2 * math.pi)
@@ -98,4 +102,8 @@ class WaveFormGenerator:
             data_float = self.sweep_wave_table[self.sweep_index:self.sweep_index + frame_length]
             self.sweep_index += frame_length
 
+        return data_float
+
+    def generateWhiteNoise(self, frame_length):
+        data_float = np.random.normal(0.0, 1.0, size=frame_length)
         return data_float
